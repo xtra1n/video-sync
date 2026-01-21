@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Synchronized Video Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        video {
+            width: 100%;
+            background: #000;
+            border-radius: 8px;
+            max-height: 500px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        button:hover:not(:disabled) {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+        }
+
+        button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .sidebar {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .info-block {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-block h3 {
+            font-size: 12px;
+            color: #667eea;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .info-block p {
+            font-size: 14px;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .peers-list {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #28a745;
+        }
+
+        .peers-list h3 {
+            font-size: 12px;
+            color: #28a745;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .peer-item {
+            background: #f8f9fa;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .peer-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 6px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type=text] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input[type=text]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .status-indicator {
+            padding: 8px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 6px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .status-indicator.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-indicator.loading {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .sync-time {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Synchronized Video Viewer</h1>
+            <p>Смотрите видео синхронно с друзьями</p>
+        </div>
+
+        <div class="content">
+            <div class="video-section">
+                <video id="videoPlayer" controls></video>
+                
+                <div class="progress-bar" id="uploadProgress">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="controls">
+                    <div class="file-input-wrapper">
+                        <button onclick="document.getElementById('videoFile').click()">
+                            📁 Выбрать видео
+                        </button>
+                        <input type="file" id="videoFile" accept="video/*">
+                    </div>
+                    <button onclick="uploadVideo()" id="uploadBtn" disabled>
+                        ⬆️ Загрузить
+                    </button>
+                </div>
+
+                <div class="sync-time" id="syncTime"></div>
+            </div>
+
+            <div class="sidebar">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="sessionId" 
+                        placeholder="ID сессии"
+                        value="default-session"
+                    >
+                    <button onclick="joinSession()" style="flex: 0.5; min-width: 80px;">
+                        🔗 Присоединиться
+                    </button>
+                </div>
+
+                <div id="statusDiv" class="status-indicator">
+                    ⏳ Подключение...
+                </div>
+
+                <div class="info-block">
+                    <h3>📊 ID</h3>
+                    <p id="peerId">Ожидание...</p>
+                </div>
+
+                <div class="info-block">
+                    <h3>📁 Файл</h3>
+                    <p id="fileName" style="color: #999;">Не выбран</p>
+                </div>
+
+                <div class="peers-list">
+                    <h3>👥 Подключено</h3>
+                    <div id="peersList">
+                        <div class="peer-item">
+                            <span class="status"></span>
+                            Ожидание...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WS_URL = 'ws://' + window.location.host + '/ws';
+        let ws = null;
+        let currentSessionId = 'default-session';
+        let currentPeerId = null;
+        let selectedFile = null;
+        let isPlaying = false;
+        let syncTimer = null;
+
+        const videoPlayer = document.getElementById('videoPlayer');
+        const videoFileInput = document.getElementById('videoFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const statusDiv = document.getElementById('statusDiv');
+        const peerId = document.getElementById('peerId');
+        const peersList = document.getElementById('peersList');
+        const fileName = document.getElementById('fileName');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const syncTime = document.getElementById('syncTime');
+
+        // Обработка выбора файла
+        videoFileInput.addEventListener('change', (e) => {
+            selectedFile = e.target.files[0];
+            if (selectedFile) {
+                fileName.textContent = selectedFile.name;
+                fileName.style.color = '#333';
+                uploadBtn.disabled = false;
+                console.log('✅ Файл выбран:', selectedFile.name, selectedFile.size, 'bytes');
+            }
+        });
+
+        // Загрузка видео
+        function uploadVideo() {
+            if (!selectedFile) {
+                alert('Выберите видео файл');
+                return;
+            }
+
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                alert('WebSocket не подключен');
+                return;
+            }
+
+            uploadProgress.classList.add('active');
+            uploadBtn.disabled = true;
+
+            const reader = new FileReader();
+            
+            reader.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressFill.style.width = percentComplete + '%';
+                }
+            };
+
+            reader.onload = (e) => {
+                console.log('📤 Отправка видео...');
+                
+                const arrayBuffer = e.target.result;
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                console.log('📊 Размер файла:', uint8Array.length, 'bytes');
+                
+                // Конвертируем в base64
+                let base64Data = '';
+                const chunkSize = 65536;
+                
+                for (let i = 0; i < uint8Array.length; i += chunkSize) {
+                    const chunk = uint8Array.subarray(i, i + chunkSize);
+                    base64Data += String.fromCharCode.apply(null, chunk);
+                }
+                
+                base64Data = btoa(base64Data);
+                
+                console.log('✅ Base64 размер:', base64Data.length, 'символов');
+                
+                if (base64Data.length === 0) {
+                    console.error('❌ Base64 пустая!');
+                    alert('Ошибка: видео не загружено');
+                    uploadProgress.classList.remove('active');
+                    uploadBtn.disabled = false;
+                    return;
+                }
+                
+                ws.send(JSON.stringify({
+                    type: 'videoData',
+                    data: base64Data
+                }));
+
+                console.log('✅ Видео отправлено на сервер');
+                uploadProgress.classList.remove('active');
+                progressFill.style.width = '0%';
+                uploadBtn.disabled = false;
+            };
+
+            reader.onerror = (e) => {
+                console.error('❌ Ошибка чтения файла:', e);
+                uploadProgress.classList.remove('active');
+                uploadBtn.disabled = false;
+            };
+
+            // Читаем как ArrayBuffer
+            reader.readAsArrayBuffer(selectedFile);
+        }
+
+        // Присоединение к сессии
+        function joinSession() {
+            currentSessionId = document.getElementById('sessionId').value || 'default-session';
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+
+            connectWebSocket();
+        }
+
+        // Подключение к WebSocket
+        function connectWebSocket() {
+            try {
+                ws = new WebSocket(WS_URL);
+
+                ws.onopen = () => {
+                    console.log('✅ WebSocket подключен');
+                    statusDiv.textContent = '🟢 Подключено';
+                    statusDiv.classList.remove('error', 'loading');
+
+                    ws.send(JSON.stringify({
+                        sessionId: currentSessionId
+                    }));
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const msg = JSON.parse(event.data);
+                        console.log('📨 Сообщение:', msg.type, 'размер:', JSON.stringify(msg).length);
+                        handleMessage(msg);
+                    } catch (e) {
+                        console.error('❌ Ошибка парсинга сообщения:', e);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('❌ WebSocket ошибка:', error);
+                    statusDiv.textContent = '🔴 Ошибка подключения';
+                    statusDiv.classList.add('error');
+                };
+
+                ws.onclose = () => {
+                    console.log('❌ WebSocket закрыт');
+                    statusDiv.textContent = '⏳ Отключено';
+                    statusDiv.classList.add('error');
+                    clearInterval(syncTimer);
+                };
+            } catch (e) {
+                console.error('❌ Ошибка создания WebSocket:', e);
+                statusDiv.textContent = '🔴 Ошибка';
+                statusDiv.classList.add('error');
+            }
+        }
+
+        // Обработка сообщений
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'joined':
+                    currentPeerId = msg.peerID;
+                    peerId.textContent = currentPeerId;
+                    console.log('✅ Присоединились, ID:', currentPeerId);
+                    break;
+
+                case 'videoData':
+                    handleVideoData(msg.data);
+                    break;
+
+                case 'sync':
+                    handleSync(msg);
+                    break;
+
+                case 'peerUpdate':
+                    updatePeersList(msg.peers);
+                    break;
+
+                default:
+                    console.log('❓ Неизвестный тип сообщения:', msg.type);
+            }
+        }
+
+        // Обработка видео данных
+        function handleVideoData(data) {
+            console.log('📥 Получено видео, длина base64:', data.length);
+            
+            try {
+                // Если это base64
+                if (typeof data === 'string' && data.length > 0) {
+                    const binaryString = atob(data);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    const blob = new Blob([bytes], { type: 'video/mp4' });
+                    playVideo(blob);
+                } else {
+                    console.error('❌ Получены пустые видео данные');
+                }
+            } catch (e) {
+                console.error('❌ Ошибка обработки видео:', e);
+            }
+        }
+
+        // Воспроизведение видео
+        function playVideo(blob) {
+            const url = URL.createObjectURL(blob);
+            videoPlayer.src = url;
+            console.log('✅ Видео загружено в плеер, размер blob:', blob.size);
+        }
+
+        // Синхронизация воспроизведения
+        function handleSync(msg) {
+            const { playing, currentTime } = msg;
+            
+            if (playing && videoPlayer.paused) {
+                videoPlayer.play().catch(e => console.log('⏸️ Невозможно воспроизвести'));
+            } else if (!playing && !videoPlayer.paused) {
+                videoPlayer.pause();
+            }
+
+            if (Math.abs(videoPlayer.currentTime - currentTime) > 0.5) {
+                videoPlayer.currentTime = currentTime;
+            }
+        }
+
+        // Обновление списка пиров
+        function updatePeersList(peers) {
+            if (!peers || peers.length === 0) {
+                peersList.innerHTML = '<div class="peer-item"><span class="status"></span>Нет подключений</div>';
+            } else {
+                peersList.innerHTML = peers.map(p => 
+                    `<div class="peer-item"><span class="status"></span>${p}</div>`
+                ).join('');
+            }
+        }
+
+        // Отправка статуса синхронизации
+        videoPlayer.addEventListener('play', () => {
+            isPlaying = true;
+            sendSync();
+        });
+
+        videoPlayer.addEventListener('pause', () => {
+            isPlaying = false;
+            sendSync();
+        });
+
+        videoPlayer.addEventListener('timeupdate', () => {
+            updateSyncTime();
+        });
+
+        function sendSync() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'sync',
+                    playing: isPlaying,
+                    currentTime: videoPlayer.currentTime
+                }));
+            }
+        }
+
+        function updateSyncTime() {
+            const min = Math.floor(videoPlayer.currentTime / 60);
+            const sec = Math.floor(videoPlayer.currentTime % 60);
+            syncTime.textContent = `⏱️ ${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        }
+
+        // Инициализация
+        console.log('🚀 Приложение запущено');
+        joinSession();
+    </script>
+</body>
+</html>

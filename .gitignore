@@ -1,0 +1,7 @@
+*.o
+*.a
+*.so
+backend/server
+.DS_Store
+.env
+go.sum.bak

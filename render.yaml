@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: video-sync
+    env: go
+    buildCommand: cd backend && go build -o server .
+    startCommand: ./backend/server
+    envVars:
+      - key: PORT
+        value: 10000
