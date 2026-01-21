@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
 const (
@@ -15,7 +14,7 @@ const (
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = DefaultPort
+		port = "8080"
 	}
 
 	storage := NewVideoStorage()
@@ -29,24 +28,16 @@ func main() {
 		fmt.Fprintf(w, `{"status":"ok"}`)
 	})
 
-	// Находим frontend папку
-	ex, _ := os.Executable()
-	frontendPath := filepath.Join(filepath.Dir(ex), "..", "frontend")
-
-	// Проверяем где мы запускаемся
+	// Путь для production
+	frontendPath := "./frontend"
 	if _, err := os.Stat("../frontend"); err == nil {
 		frontendPath = "../frontend"
 	}
-	if _, err := os.Stat("./frontend"); err == nil {
-		frontendPath = "./frontend"
-	}
 
-	log.Printf("Serving frontend from: %s", frontendPath)
 	http.Handle("/", http.FileServer(http.Dir(frontendPath)))
 
 	addr := ":" + port
-	log.Printf("Server starting on http://localhost%s", addr)
-	log.Printf("Open http://localhost%s in browser", addr)
+	log.Printf("Server starting on port %s", port)
 
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatalf("Server error: %v", err)
